@@ -444,6 +444,34 @@ namespace ImageTemplate
                 // save memory and time as this ensures the edges aren't repeated at the heap
             }
             buildComponent(Color.Blue);
+
+            var redRegionsRoots = new HashSet<(int, int)>();
+            var greenRegionsRoots = new HashSet<(int, int)>();
+            var blueRegionsRoots = new HashSet<(int, int)>();
+
+            for(int i = 0; i < rows; i++)
+            {
+                for(int j = 0; j < columns; j++)
+                {
+                    var components = imageComponents[i, j];
+                    
+                    var row = components.component[0].height;
+                    var col = components.component[0].width;
+                    redRegionsRoots.Add(rootParent(row, col, Color.Red));
+
+                    row = components.component[1].height;
+                    col = components.component[1].width;
+                    greenRegionsRoots.Add(rootParent(row, col, Color.Green));
+
+                    row = components.component[2].height;
+                    col = components.component[2].width;
+                    blueRegionsRoots.Add(rootParent(row, col, Color.Blue));
+                }
+            }
+
+            int redRegionsCount = redRegionsRoots.Count;
+            int greenRegionsCount = greenRegionsRoots.Count;
+            int blueRegionsCount = blueRegionsRoots.Count;
         }
         private void btnOpen_Click(object sender, EventArgs e)
         {
