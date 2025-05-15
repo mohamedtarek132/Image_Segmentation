@@ -256,32 +256,56 @@ namespace ImageTemplate
         {
             Red,
             Green, 
-            Blue
+            Blue, 
+            None
         }
         Components[,] imageComponents; // DSU - UF
         private (int x, int y) rootParent(int x, int y, Color color)
         {
-            Stack<(int, int)> stack = new Stack<(int, int)>(); 
-            int colorIdx = (int)color;
-            while (imageComponents[x, y].component[colorIdx].width != y &&
-                imageComponents[x, y].component[colorIdx].height != x)
+            Stack<(int, int)> stack = new Stack<(int, int)>();
+            var temp = (x, y);
+            if (color != Color.None)
             {
-                stack.Push((x, y));
-                int new_x = imageComponents[x, y].component[colorIdx].height;
-                int new_y = imageComponents[x, y].component[colorIdx].width;
-                x = new_x; 
-                y = new_y;
+                int colorIdx = (int)color;
+                while (imageComponents[x, y].component[colorIdx].width != y &&
+                    imageComponents[x, y].component[colorIdx].height != x)
+                {
+                    stack.Push((x, y));
+                    int new_x = imageComponents[x, y].component[colorIdx].height;
+                    int new_y = imageComponents[x, y].component[colorIdx].width;
+                    x = new_x;
+                    y = new_y;
+                }
+                while (stack.Count > 0)
+                {
+                    temp = stack.Pop();
+                    imageComponents[x, y].component[colorIdx].height = temp.Item1;
+                    imageComponents[x, y].component[colorIdx].width = temp.Item2;
+                }
+                return (x, y);
             }
-            while(stack.Count > 0)
+
+            while (finalRegions[temp.x, temp.y] != temp)
             {
-                var temp = stack.Pop();
-                imageComponents[x, y].component[colorIdx].height = temp.Item1;
-                imageComponents[x, y].component[colorIdx].width = temp.Item2;
+                stack.Push((temp.x, temp.y));
+                temp = finalRegions[temp.x, temp.y];
             }
-            return (x, y);
+            while (stack.Count > 0)
+            {
+                var t = stack.Pop();
+                finalRegions[t.Item1, t.Item2] = temp;
+            }
+            return temp;
         }
+        (int, int)[,] finalRegions;
         private void MergeIfCanMerge(int x1, int y1, int x2, int y2, int weight, Color color)
         {
+            if(color == Color.None)
+            {
+                finalRegions[x2, x2] = finalRegions[x1, x1];
+                return;
+            }
+
             decimal k = nudMaskSize.Value;
             int colorIdx = (int)color;
             var MinInternal = imageComponents[x1, y1].component[colorIdx].maxInternal + k / imageComponents[x1, y1].component[colorIdx].connectedNodesCount;
@@ -449,10 +473,13 @@ namespace ImageTemplate
             var greenRegionsRoots = new HashSet<(int, int)>();
             var blueRegionsRoots = new HashSet<(int, int)>();
 
+            finalRegions = new (int, int)[rows, columns]; // (0, 0) the default value
             for(int i = 0; i < rows; i++)
             {
                 for(int j = 0; j < columns; j++)
                 {
+                    finalRegions[i, j] = (i, j);
+
                     var components = imageComponents[i, j];
                     
                     var row = components.component[0].height;
@@ -472,6 +499,61 @@ namespace ImageTemplate
             int redRegionsCount = redRegionsRoots.Count;
             int greenRegionsCount = greenRegionsRoots.Count;
             int blueRegionsCount = blueRegionsRoots.Count;
+
+            var finalRegionsRoots = new HashSet<(int, int)>();
+
+            for (int i = 0; i < rows; i++)
+            {
+                for (int j = 0; j < columns; j++)
+                {
+                    if (j > 0 && i + 1 < rows)
+                    {
+                        if(rootParent(i, j, Color.Red) == rootParent(i + 1, j - 1, Color.Red) &&
+                           rootParent(i, j, Color.Green) == rootParent(i + 1, j - 1, Color.Green) &&
+                           rootParent(i, j, Color.Blue) == rootParent(i + 1, j - 1, Color.Blue))
+                        {
+                            MergeIfCanMerge(i, j, i + 1, j - 1, 0, Color.None);
+                        }
+                    }
+                    if (j + 1 < columns)
+                    {
+                        if (rootParent(i, j, Color.Red) == rootParent(i, j + 1, Color.Red) &&
+                           rootParent(i, j, Color.Green) == rootParent(i, j + 1, Color.Green) &&
+                           rootParent(i, j, Color.Blue) == rootParent(i, j + 1, Color.Blue))
+                        {
+                            MergeIfCanMerge(i, j, i, j + 1, 0, Color.None);
+                        }
+                    }
+                    if (i + 1 < rows)
+                    {
+                        if (rootParent(i, j, Color.Red) == rootParent(i + 1, j, Color.Red) &&
+                           rootParent(i, j, Color.Green) == rootParent(i + 1, j, Color.Green) &&
+                           rootParent(i, j, Color.Blue) == rootParent(i + 1, j, Color.Blue))
+                        {
+                            MergeIfCanMerge(i, j, i + 1, j, 0, Color.None);
+                        }
+                    }
+                    if (j + 1 < columns && i + 1 < rows)
+                    {
+                        if (rootParent(i, j, Color.Red) == rootParent(i + 1, j + 1, Color.Red) &&
+                           rootParent(i, j, Color.Green) == rootParent(i + 1, j + 1, Color.Green) &&
+                           rootParent(i, j, Color.Blue) == rootParent(i + 1, j + 1, Color.Blue))
+                        {
+                            MergeIfCanMerge(i, j, i + 1, j + 1, 0, Color.None);
+                        }
+                    }
+                }
+            }
+
+            for (int i = 0; i < rows; i++)
+            {
+                for (int j = 0; j < columns; j++)
+                {
+                    finalRegionsRoots.Add(rootParent(i, j, Color.None));
+                }
+            }
+
+            int finalRegionsCount = finalRegionsRoots.Count;
         }
         private void btnOpen_Click(object sender, EventArgs e)
         {
