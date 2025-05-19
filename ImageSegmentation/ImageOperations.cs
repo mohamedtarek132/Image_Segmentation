@@ -161,6 +161,9 @@ namespace ImageTemplate
        /// <returns>smoothed color image</returns>
         public static RGBPixel[,] GaussianFilter1D(RGBPixel[,] ImageMatrix, int filterSize, double sigma)
         {
+            if (sigma == 0)
+                return ImageMatrix;
+
             int Height = GetHeight(ImageMatrix);
             int Width = GetWidth(ImageMatrix);
 

@@ -2,9 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
+using System.Diagnostics;
 using System.Drawing;
 using System.Security.Permissions;
 using System.Text;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace ImageTemplate
@@ -19,9 +21,10 @@ namespace ImageTemplate
 
 
         RGBPixel[,] ImageMatrix;
-        
-        
-      
+        int regionCount;
+        int[] pixelPerRegionCount;
+
+
         private void btnOpen_Click(object sender, EventArgs e)
         {
             OpenFileDialog openFileDialog1 = new OpenFileDialog();
@@ -36,14 +39,22 @@ namespace ImageTemplate
             txtHeight.Text = ImageOperations.GetHeight(ImageMatrix).ToString();
         }
 
-        private void btnGaussSmooth_Click(object sender, EventArgs e)
+        private async void btnGaussSmooth_Click(object sender, EventArgs e)
         {
             double sigma = double.Parse(txtGaussSigma.Text);
             int maskSize = (int)nudMaskSize.Value ;
             int k = int.Parse(textBox1.Text);
             ImageMatrix = ImageOperations.GaussianFilter1D(ImageMatrix, maskSize, sigma);
+            Stopwatch timer = Stopwatch.StartNew();
             seg s = new seg(ImageMatrix.GetLength(0), ImageMatrix.GetLength(1),k);
-            ImageMatrix = s.segmentImage(GraphConstruction.build_graph(ImageMatrix));
+            
+            await Task.Run(() => (ImageMatrix, regionCount, pixelPerRegionCount) = s.segmentImage(GraphConstruction.build_graph(ImageMatrix)));
+            ;
+            timer.Stop();
+            long time = timer.ElapsedMilliseconds;
+            
+            Console.WriteLine("time : " + time);
+            Console.WriteLine("number of finel regions : " + regionCount);
             ImageOperations.DisplayImage(ImageMatrix, pictureBox2);
 
          }

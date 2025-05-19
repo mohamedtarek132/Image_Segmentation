@@ -1,7 +1,6 @@
-﻿using System.Collections.Generic;
-using System.Windows.Forms;
-using System;
-using System.Runtime.CompilerServices;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace ImageTemplate
 {
@@ -20,7 +19,7 @@ namespace ImageTemplate
         }
 
         // Main segmentation entry point
-        public RGBPixel[,] segmentImage(RGBWeight[,] graph)
+        public (RGBPixel[,], int, int[]) segmentImage(RGBWeight[,] graph)
         {
             // Initialize disjoint sets for each color channel
             DisjointSet RedComponents = new DisjointSet(v);
@@ -38,31 +37,44 @@ namespace ImageTemplate
             BlueComponents = mergeComponents(BlueComponents, BlueEdges);
 
             // Combine results from all three channels using intersection
-            DisjointSet finalRegions = buildRegions(RedComponents, GreenComponents, BlueComponents);
+            DisjointSet finalRegions = buildRegions(RedComponents, GreenComponents, BlueComponents,RedEdges);
 
             // Generate color-coded visualization of the regions
             RGBPixel[,] segmentedImage = visualizeRegions(finalRegions);
 
             // Diagnostic output for region counts
-            HashSet<int> red = new HashSet<int>();
-            HashSet<int> green = new HashSet<int>();
-            HashSet<int> blue = new HashSet<int>();
-            HashSet<int> t = new HashSet<int>();
+            //HashSet<int> red = new HashSet<int>();
+            //HashSet<int> green = new HashSet<int>();
+            //HashSet<int> blue = new HashSet<int>();
+            HashSet<int> finalRegionSet = new HashSet<int>();
+            Dictionary<int,int> pixelPerRegionCounter = new Dictionary<int,int>();
 
             for (int i = 0; i < v; i++)
             {
-                red.Add(RedComponents.Find(i));
-                green.Add(GreenComponents.Find(i));
-                blue.Add(BlueComponents.Find(i));
-                t.Add(finalRegions.Find(i));
+                //red.Add(RedComponents.Find(i));
+                //green.Add(GreenComponents.Find(i));
+                //blue.Add(BlueComponents.Find(i));
+                int parent = finalRegions.Find(i);
+                finalRegionSet.Add(parent);
+                if (pixelPerRegionCounter.ContainsKey(parent))
+                {
+                    pixelPerRegionCounter[parent] += 1;
+                }
+                else
+                {
+                    pixelPerRegionCounter.Add(parent, 1);
+                }
             }
 
-            Console.WriteLine(red.Count);
-            Console.WriteLine(green.Count);
-            Console.WriteLine(blue.Count);
-            Console.WriteLine(t.Count);
-
-            return segmentedImage;
+            //Console.WriteLine(red.Count);
+            //Console.WriteLine(green.Count);
+            //Console.WriteLine(blue.Count);
+            //Console.WriteLine(finalRegionSet.Count);
+            int[] pixelPerRegionCount = pixelPerRegionCounter.Values.ToArray();
+            Array.Sort(pixelPerRegionCount);
+            Array.Reverse(pixelPerRegionCount);
+            
+            return (segmentedImage, finalRegionSet.Count, pixelPerRegionCount);
         }
 
         // Construct sorted edge list for a specific color channel
@@ -107,6 +119,7 @@ namespace ImageTemplate
             // Sort edges by ascending weight for Kruskal-like merging
             Edge[] edges = edgesList.ToArray();
             Array.Sort(edges, (a, b) => a.weight.CompareTo(b.weight));
+            
             return edges;
         }
 
@@ -130,47 +143,37 @@ namespace ImageTemplate
                 // Merge if edge weight is below adaptive threshold
                 if (edge.weight < MInt)
                 {
-                    comp.Union(edge.V1, edge.V2, edge.weight);
+                    comp.Union(root1, root2, edge.weight);
                 }
             }
             return comp;
         }
 
         // Combine results from three color channels through intersection
-        private DisjointSet buildRegions(DisjointSet RedComp, DisjointSet GreenComp, DisjointSet BlueComp)
+        private DisjointSet buildRegions(DisjointSet RedComp, DisjointSet GreenComp, DisjointSet BlueComp, Edge[] edges)
         {
             DisjointSet regions = new DisjointSet(v);
-            // Track unique combinations of color component memberships
-            Dictionary<(int, int, int), int> componentMap = new Dictionary<(int, int, int), int>();
 
-            // Precompute roots for better cache performance
-            int[] redRoots = new int[v];
-            int[] greenRoots = new int[v];
-            int[] blueRoots = new int[v];
-            for (int i = 0; i < v; i++)
+            foreach (var edge in edges)
             {
-                redRoots[i] = RedComp.Find(i);
-                greenRoots[i] = GreenComp.Find(i);
-                blueRoots[i] = BlueComp.Find(i);
-            }
+                int root1 = regions.Find(edge.V1);
+                int root2 = regions.Find(edge.V2);
 
-            for (int i = 0; i < v; i++)
-            {
-                // Create composite key from three color components
-                var key = (redRoots[i], greenRoots[i], blueRoots[i]);
+                if (root1 == root2) continue;  // Already in same component
 
-                if (componentMap.TryGetValue(key, out int existingRoot))
+                int v1 = edge.V1;
+                int v2 = edge.V2;
+                var key1 = (RedComp.Find(v1), GreenComp.Find(v1), BlueComp.Find(v1));
+                var key2 = (RedComp.Find(v2), GreenComp.Find(v2), BlueComp.Find(v2));
+
+                // Merge if edge weight is below adaptive threshold
+                if (key1.Item1 == key2.Item1 && key1.Item2 == key2.Item2 && key1.Item3 == key2.Item3)
                 {
-                    // Merge with existing region and update root
-                    regions.Union(existingRoot, i, 0);
-                    componentMap[key] = regions.Find(existingRoot);
-                }
-                else
-                {
-                    // Register new unique component combination
-                    componentMap[key] = regions.Find(i);
+                    regions.Union(root1, root2);
                 }
             }
+
+
             return regions;
         }
 

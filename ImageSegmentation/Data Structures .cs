@@ -19,8 +19,7 @@ namespace ImageTemplate
     {
         Red,
         Green,
-        Blue,
-        None
+        Blue
     }
 
     
@@ -35,14 +34,14 @@ namespace ImageTemplate
         // size[i] = number of elements in tree rooted at i
         public int[] size;
 
-        public double[] InternalDifference;
+        public byte[] InternalDifference;
 
         // Initializes a Disjoint Set Union (DSU) structure for n elements
         public DisjointSet(int n)
         {
             parent = new int[n];
             size = new int[n];
-            InternalDifference = new double[n];
+            InternalDifference = new byte[n];
 
             for (int i = 0; i < n; i++)
             {
@@ -61,11 +60,12 @@ namespace ImageTemplate
                 parent[x] = parent[parent[x]];  // Flattens tree structure
                 x = parent[x];  // Move up the tree
             }
+            
             return x;  // Root element of x's component
         }
 
         // Merges two components using union-by-size optimization
-        public void Union(int x, int y,byte weight)
+        public void Union(int x, int y,byte weight = 0)
         {
             int xRoot = Find(x);  // Root of x's component
             int yRoot = Find(y);  // Root of y's component
@@ -83,7 +83,7 @@ namespace ImageTemplate
             parent[yRoot] = xRoot;         // Merge components
             size[xRoot] += size[yRoot];    // Update component size
             
-            InternalDifference[xRoot] = Math.Max(InternalDifference[xRoot], Math.Max((double)weight, InternalDifference[yRoot]));
+            InternalDifference[xRoot] = Math.Max(InternalDifference[xRoot], Math.Max(weight, InternalDifference[yRoot]));
             
             
 
