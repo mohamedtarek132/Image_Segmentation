@@ -9,12 +9,34 @@ namespace ImageTemplate
 {
     internal class Helper_func
     {
-        int height, width;
-
-        public Helper_func(int height, int width)
+        
+        static public void coutingSort(Edge[] edges)
         {
-            this.height = height;
-            this.width = width;
+            int maxWeight = 255;
+            int[] count = new int[maxWeight + 1];
+            Edge[] sorted = new Edge[edges.Length];
+
+            foreach (Edge edge in edges)
+            {
+                count[edge.weight]++;
+            }
+
+            int total = 0;
+            for (int i = 0; i <= maxWeight; i++)
+            {
+                int oldCount = count[i];
+                count[i] = total;
+                total += oldCount;
+            }
+
+            foreach (Edge edge in edges)
+            {
+                int index = count[edge.weight];
+                sorted[index] = edge;
+                count[edge.weight]++;
+            }
+
+            Array.Copy(sorted, edges, edges.Length);
         }
 
         static public void writeFile(string fullPath, int regionCount, int[] pixelPerRegionCount)
@@ -55,26 +77,5 @@ namespace ImageTemplate
 
         }
 
-        public (int, byte)[] getneighbors(int V_indx)
-        {
-            int x = V_indx / width;
-            int y = V_indx % width;
-            List<(int, byte)> neighbors = new List<(int, byte)>();
-
-            // Check all 8 directions (dx, dy, direction index)
-            (int, int, byte)[] directions = {
-                                         (0, 1, 0),
-                (1, -1, 1),  (1, 0, 2),  (1, 1, 3)
-            };
-
-            foreach (var dir in directions)
-            {
-                int nx = x + dir.Item1;
-                int ny = y + dir.Item2;
-                if (nx >= 0 && nx < height && ny >= 0 && ny < width)
-                    neighbors.Add((nx * width + ny, dir.Item3));
-            }
-            return neighbors.ToArray();
-        }
     }
 }

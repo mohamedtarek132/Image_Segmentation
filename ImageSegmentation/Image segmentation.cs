@@ -84,7 +84,7 @@ namespace ImageTemplate
             byte[,] channelGraph = GraphConstruction.build_graph(channel, ImageMatrix);
             Edge[] edges = buildEdgeArray(channelGraph);
             components = mergeComponents(components, edges);
-            if(channel == Color.Red)
+            if (channel == Color.Red)
             {
                 return edges;
             }
@@ -94,27 +94,38 @@ namespace ImageTemplate
         // Construct sorted edge list for a specific color channel
         private Edge[] buildEdgeArray(byte[,] graph)
         {
-            Helper_func help = new Helper_func(height, width);
+            
             List<Edge> edgesList = new List<Edge>();
 
             // Iterate through all pixels
             for (int i = 0; i < v; i++)
             {
-                // Get 8-connected neighbors for current pixel
-                (int, byte)[] neighbors = help.getneighbors(i);
-                foreach (var n in neighbors)
+                (int, int, byte)[] directions = {
+                                         (0, 1, 0),
+                (1, -1, 1),  (1, 0, 2),  (1, 1, 3)
+                };
+                int x = i / width;
+                int y = i % width;
+
+                foreach (var dir in directions)
                 {
-                    int neighborIndex = n.Item1;
-                   
-                    edgesList.Add(new Edge { V1 = i, V2 = neighborIndex, weight = graph[i, n.Item2] });
-                    
+                    int nx = x + dir.Item1;
+                    int ny = y + dir.Item2;
+                    if (nx >= 0 && nx < height && ny >= 0 && ny < width)
+                    {
+                        int neighborIndex = nx * width + ny;
+
+                        edgesList.Add(new Edge { V1 = i, V2 = neighborIndex, weight = graph[i, dir.Item3] });//O(1)
+                    }
+
                 }
+
             }
 
             // Sort edges by ascending weight for Kruskal-like merging
             Edge[] edges = edgesList.ToArray();
-            Array.Sort(edges, (a, b) => a.weight.CompareTo(b.weight));
-            
+            Helper_func.coutingSort(edges);
+
             return edges;
         }
 
