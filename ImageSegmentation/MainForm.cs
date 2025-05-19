@@ -49,9 +49,9 @@ namespace ImageTemplate
 
             Stopwatch timer = Stopwatch.StartNew();
 
-            seg s = new seg(ImageMatrix.GetLength(0), ImageMatrix.GetLength(1),k);
+            seg s = new seg(ImageMatrix.GetLength(0), ImageMatrix.GetLength(1),k, ImageMatrix);
             
-            await Task.Run(() => (ImageMatrix, regionCount, pixelPerRegionCount) = s.segmentImage(ImageMatrix));
+            await Task.Run(() => (ImageMatrix, regionCount, pixelPerRegionCount) = s.segmentImage());
             
             timer.Stop();
             long time = timer.ElapsedMilliseconds;

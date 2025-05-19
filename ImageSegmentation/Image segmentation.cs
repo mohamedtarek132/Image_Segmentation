@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
+using System.Windows.Forms.VisualStyles;
 
 namespace ImageTemplate
 {
@@ -9,49 +11,35 @@ namespace ImageTemplate
         int height, width;
         double k;  // Threshold function parameter controlling region merging
         int v;     // Total number of pixels (height * width)
-
-        public seg(int h, int w, int k)
+        RGBPixel[,] ImageMatrix;
+        public seg(int h, int w, int k, RGBPixel[,] imageMatrix)
         {
             this.k = k;
             this.height = h;
             this.width = w;
             v = h * w;  // Calculate total number of vertices
+            ImageMatrix = imageMatrix;
         }
 
         // Main segmentation entry point
-        public (RGBPixel[,], int, int[]) segmentImage(RGBPixel[,] ImageMatrix)
+        public (RGBPixel[,], int, int[]) segmentImage()
         {
+
             // Initialize disjoint sets for each color channel
             DisjointSet RedComponents = new DisjointSet(v);
             DisjointSet GreenComponents = new DisjointSet(v);
             DisjointSet BlueComponents = new DisjointSet(v);
 
-            Edge[] RedEdges;
+            Edge[] Edges = null;
 
-            {
-                Edge[] GreenEdges;
-                Edge[] BlueEdges;
-                {
-                    byte[,] RedGraph = GraphConstruction.build_graph(Color.Red, ImageMatrix);
-                    byte[,] GreenGraph = GraphConstruction.build_graph(Color.Green, ImageMatrix);
-                    byte[,] BlueGraph = GraphConstruction.build_graph(Color.Blue, ImageMatrix);
-
-                    RedEdges = buildEdgeArray(RedGraph);
-                    GreenEdges = buildEdgeArray(GreenGraph);
-                    BlueEdges = buildEdgeArray(BlueGraph);
-                    // Merge components for each color channel independently
-                    
-                }
-                RedComponents = mergeComponents(RedComponents, RedEdges);
-                GreenComponents = mergeComponents(GreenComponents, GreenEdges);
-                BlueComponents = mergeComponents(BlueComponents, BlueEdges);
-                // Build and sort edges for each color channel
-
-            }
-
+            Parallel.Invoke(
+                () => Edges = ProcessColorChannel(Color.Red, ref RedComponents),
+                () => ProcessColorChannel(Color.Green, ref GreenComponents),
+                () => ProcessColorChannel(Color.Blue, ref BlueComponents)
+            );
 
             // Combine results from all three channels using intersection
-            DisjointSet finalRegions = buildRegions(RedComponents, GreenComponents, BlueComponents, RedEdges);
+            DisjointSet finalRegions = buildRegions(RedComponents, GreenComponents, BlueComponents, Edges);
 
             // Generate color-coded visualization of the regions
             RGBPixel[,] segmentedImage = visualizeRegions(finalRegions);
@@ -89,6 +77,18 @@ namespace ImageTemplate
             Array.Reverse(pixelPerRegionCount);
 
             return (segmentedImage, finalRegionSet.Count, pixelPerRegionCount);
+        }
+
+        private Edge[] ProcessColorChannel(Color channel, ref DisjointSet components)
+        {
+            byte[,] channelGraph = GraphConstruction.build_graph(channel, ImageMatrix);
+            Edge[] edges = buildEdgeArray(channelGraph);
+            components = mergeComponents(components, edges);
+            if(channel == Color.Red)
+            {
+                return edges;
+            }
+            return null;
         }
 
         // Construct sorted edge list for a specific color channel
