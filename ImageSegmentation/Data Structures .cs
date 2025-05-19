@@ -54,42 +54,47 @@ namespace ImageTemplate
         // Finds root of x's component with path compression optimization
         public int Find(int x)
         {
-            while (parent[x] != x)
+            int[] parentLocal = parent; // Cache to local variable
+                                        // Find the root of x
+            int root = x;
+            while (parentLocal[root] != root)
             {
-                // Path compression: make x's parent point to grandparent
-                parent[x] = parent[parent[x]];  // Flattens tree structure
-                x = parent[x];  // Move up the tree
+                root = parentLocal[root];
             }
-            
-            return x;  // Root element of x's component
+            // Compress the path from x to root
+            while (parentLocal[x] != root)
+            {
+                int next = parentLocal[x];
+                parentLocal[x] = root;
+                x = next;
+            }
+            return root;
         }
 
         // Merges two components using union-by-size optimization
-        public void Union(int x, int y,byte weight = 0)
+        public void Union(int x, int y, byte weight = 0)
         {
-            int xRoot = Find(x);  // Root of x's component
-            int yRoot = Find(y);  // Root of y's component
+            int[] parentLocal = parent; // Cache local references
+            int[] sizeLocal = size;
+            byte[] internalDiffLocal = InternalDifference;
 
-            if (xRoot == yRoot) return;  // Already in same component
+            int xRoot = Find(x);
+            int yRoot = Find(y);
 
-            // Ensure xRoot is larger component (swap if necessary)
-            if (size[xRoot] < size[yRoot])
+            if (xRoot == yRoot) return;
+
+            // Ensure xRoot is the larger tree
+            if (sizeLocal[xRoot] < sizeLocal[yRoot])
             {
-                // Swap roots to maintain size hierarchy
-                (xRoot, yRoot) = (yRoot, xRoot);  // Tuple swap
+                (xRoot, yRoot) = (yRoot, xRoot);
             }
 
-            // Attach smaller tree (yRoot) to larger tree (xRoot)
-            parent[yRoot] = xRoot;         // Merge components
-            size[xRoot] += size[yRoot];    // Update component size
-            
-            InternalDifference[xRoot] = Math.Max(InternalDifference[xRoot], Math.Max(weight, InternalDifference[yRoot]));
-            
-            
-
-            // Note: size[yRoot] is no longer maintained after merge
+            parentLocal[yRoot] = xRoot;
+            sizeLocal[xRoot] += sizeLocal[yRoot];
+            internalDiffLocal[xRoot] = Math.Max(internalDiffLocal[xRoot],
+                Math.Max(weight, internalDiffLocal[yRoot]));
         }
 
-        
+
     }
 }

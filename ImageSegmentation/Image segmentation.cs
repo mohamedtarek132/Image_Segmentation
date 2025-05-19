@@ -92,27 +92,26 @@ namespace ImageTemplate
                 {
                     int neighborIndex = n.Item1;
                     // Ensure each edge is only added once (i < neighborIndex)
-                    if (i < neighborIndex)
+                   
+                    byte w;
+                    // Extract weight from appropriate color channel
+                    switch (color)
                     {
-                        byte w;
-                        // Extract weight from appropriate color channel
-                        switch (color)
-                        {
-                            case Color.Red:
-                                w = graph[i, n.Item2].red;
-                                break;
-                            case Color.Green:
-                                w = graph[i, n.Item2].green;
-                                break;
-                            case Color.Blue:
-                                w = graph[i, n.Item2].blue;
-                                break;
-                            default:
-                                w = 0;
-                                break;
-                        }
-                        edgesList.Add(new Edge { V1 = i, V2 = neighborIndex, weight = w });
+                        case Color.Red:
+                            w = graph[i, n.Item2].red;
+                            break;
+                        case Color.Green:
+                            w = graph[i, n.Item2].green;
+                            break;
+                        case Color.Blue:
+                            w = graph[i, n.Item2].blue;
+                            break;
+                        default:
+                            w = 0;
+                            break;
                     }
+                    edgesList.Add(new Edge { V1 = i, V2 = neighborIndex, weight = w });
+                    
                 }
             }
 
