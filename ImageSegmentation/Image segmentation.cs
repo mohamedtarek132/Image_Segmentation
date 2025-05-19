@@ -19,25 +19,39 @@ namespace ImageTemplate
         }
 
         // Main segmentation entry point
-        public (RGBPixel[,], int, int[]) segmentImage(RGBWeight[,] graph)
+        public (RGBPixel[,], int, int[]) segmentImage(RGBPixel[,] ImageMatrix)
         {
             // Initialize disjoint sets for each color channel
             DisjointSet RedComponents = new DisjointSet(v);
             DisjointSet GreenComponents = new DisjointSet(v);
             DisjointSet BlueComponents = new DisjointSet(v);
 
-            // Build and sort edges for each color channel
-            Edge[] RedEdges = buildEdgeArray(Color.Red, graph);
-            Edge[] GreenEdges = buildEdgeArray(Color.Green, graph);
-            Edge[] BlueEdges = buildEdgeArray(Color.Blue, graph);
+            Edge[] RedEdges;
 
-            // Merge components for each color channel independently
-            RedComponents = mergeComponents(RedComponents, RedEdges);
-            GreenComponents = mergeComponents(GreenComponents, GreenEdges);
-            BlueComponents = mergeComponents(BlueComponents, BlueEdges);
+            {
+                Edge[] GreenEdges;
+                Edge[] BlueEdges;
+                {
+                    byte[,] RedGraph = GraphConstruction.build_graph(Color.Red, ImageMatrix);
+                    byte[,] GreenGraph = GraphConstruction.build_graph(Color.Green, ImageMatrix);
+                    byte[,] BlueGraph = GraphConstruction.build_graph(Color.Blue, ImageMatrix);
+
+                    RedEdges = buildEdgeArray(RedGraph);
+                    GreenEdges = buildEdgeArray(GreenGraph);
+                    BlueEdges = buildEdgeArray(BlueGraph);
+                    // Merge components for each color channel independently
+                    
+                }
+                RedComponents = mergeComponents(RedComponents, RedEdges);
+                GreenComponents = mergeComponents(GreenComponents, GreenEdges);
+                BlueComponents = mergeComponents(BlueComponents, BlueEdges);
+                // Build and sort edges for each color channel
+
+            }
+
 
             // Combine results from all three channels using intersection
-            DisjointSet finalRegions = buildRegions(RedComponents, GreenComponents, BlueComponents,RedEdges);
+            DisjointSet finalRegions = buildRegions(RedComponents, GreenComponents, BlueComponents, RedEdges);
 
             // Generate color-coded visualization of the regions
             RGBPixel[,] segmentedImage = visualizeRegions(finalRegions);
@@ -47,7 +61,7 @@ namespace ImageTemplate
             //HashSet<int> green = new HashSet<int>();
             //HashSet<int> blue = new HashSet<int>();
             HashSet<int> finalRegionSet = new HashSet<int>();
-            Dictionary<int,int> pixelPerRegionCounter = new Dictionary<int,int>();
+            Dictionary<int, int> pixelPerRegionCounter = new Dictionary<int, int>();
 
             for (int i = 0; i < v; i++)
             {
@@ -73,12 +87,12 @@ namespace ImageTemplate
             int[] pixelPerRegionCount = pixelPerRegionCounter.Values.ToArray();
             Array.Sort(pixelPerRegionCount);
             Array.Reverse(pixelPerRegionCount);
-            
+
             return (segmentedImage, finalRegionSet.Count, pixelPerRegionCount);
         }
 
         // Construct sorted edge list for a specific color channel
-        private Edge[] buildEdgeArray(Color color, RGBWeight[,] graph)
+        private Edge[] buildEdgeArray(byte[,] graph)
         {
             Helper_func help = new Helper_func(height, width);
             List<Edge> edgesList = new List<Edge>();
@@ -91,26 +105,8 @@ namespace ImageTemplate
                 foreach (var n in neighbors)
                 {
                     int neighborIndex = n.Item1;
-                    // Ensure each edge is only added once (i < neighborIndex)
                    
-                    byte w;
-                    // Extract weight from appropriate color channel
-                    switch (color)
-                    {
-                        case Color.Red:
-                            w = graph[i, n.Item2].red;
-                            break;
-                        case Color.Green:
-                            w = graph[i, n.Item2].green;
-                            break;
-                        case Color.Blue:
-                            w = graph[i, n.Item2].blue;
-                            break;
-                        default:
-                            w = 0;
-                            break;
-                    }
-                    edgesList.Add(new Edge { V1 = i, V2 = neighborIndex, weight = w });
+                    edgesList.Add(new Edge { V1 = i, V2 = neighborIndex, weight = graph[i, n.Item2] });
                     
                 }
             }

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -14,6 +15,44 @@ namespace ImageTemplate
         {
             this.height = height;
             this.width = width;
+        }
+
+        static public void writeFile(string fullPath, int regionCount, int[] pixelPerRegionCount)
+        {
+            string filePath = Path.GetDirectoryName(fullPath);
+            filePath = Path.Combine(filePath, "our_output.txt");
+
+            try
+            {
+                // Check if file exists before attempting to delete
+                if (File.Exists(filePath))
+                {
+                    File.Delete(filePath);
+                    Console.WriteLine($"File deleted successfully: {filePath}");
+                }
+                else
+                {
+                    Console.WriteLine($"File does not exist: {filePath}");
+                }
+
+                using (StreamWriter writer = new StreamWriter(filePath))
+                {
+                    // Write the count as the first line
+                    writer.WriteLine(regionCount);
+
+                    // Write each array element on subsequent lines
+                    foreach (var item in pixelPerRegionCount)
+                    {
+                        writer.WriteLine(item);
+                    }
+                }
+
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error deleting file: {ex.Message}");
+            }
+
         }
 
         public (int, byte)[] getneighbors(int V_indx)

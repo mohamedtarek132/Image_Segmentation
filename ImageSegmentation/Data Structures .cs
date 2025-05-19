@@ -15,7 +15,7 @@ namespace ImageTemplate
     }
 
     
-    enum Color
+    public enum Color
     {
         Red,
         Green,
