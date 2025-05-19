@@ -10,13 +10,13 @@ namespace ImageTemplate
     internal class Helper_func
     {
         
-        static public void coutingSort(Edge[] edges)
+        static public void coutingSort(Edge[] edges)//O(4V)
         {
             int maxWeight = 255;
             int[] count = new int[maxWeight + 1];
-            Edge[] sorted = new Edge[edges.Length];
+            Edge[] sorted = new Edge[edges.Length];//O(V)
 
-            foreach (Edge edge in edges)
+            foreach (Edge edge in edges)//O(V)
             {
                 count[edge.weight]++;
             }
@@ -29,14 +29,14 @@ namespace ImageTemplate
                 total += oldCount;
             }
 
-            foreach (Edge edge in edges)
+            foreach (Edge edge in edges)//O(V)
             {
                 int index = count[edge.weight];
                 sorted[index] = edge;
                 count[edge.weight]++;
             }
 
-            Array.Copy(sorted, edges, edges.Length);
+            Array.Copy(sorted, edges, edges.Length);//O(V)
         }
 
         static public void writeFile(string fullPath, int regionCount, int[] pixelPerRegionCount)

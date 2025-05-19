@@ -98,7 +98,7 @@ namespace ImageTemplate
             List<Edge> edgesList = new List<Edge>();
 
             // Iterate through all pixels
-            for (int i = 0; i < v; i++)
+            for (int i = 0; i < v; i++)    //O(V)
             {
                 (int, int, byte)[] directions = {
                                          (0, 1, 0),
@@ -107,7 +107,7 @@ namespace ImageTemplate
                 int x = i / width;
                 int y = i % width;
 
-                foreach (var dir in directions)
+                foreach (var dir in directions)    //O(1)
                 {
                     int nx = x + dir.Item1;
                     int ny = y + dir.Item2;
@@ -115,7 +115,7 @@ namespace ImageTemplate
                     {
                         int neighborIndex = nx * width + ny;
 
-                        edgesList.Add(new Edge { V1 = i, V2 = neighborIndex, weight = graph[i, dir.Item3] });//O(1)
+                        edgesList.Add(new Edge { V1 = i, V2 = neighborIndex, weight = graph[i, dir.Item3] });   //O(1)
                     }
 
                 }
@@ -123,20 +123,20 @@ namespace ImageTemplate
             }
 
             // Sort edges by ascending weight for Kruskal-like merging
-            Edge[] edges = edgesList.ToArray();
-            Helper_func.coutingSort(edges);
+            Edge[] edges = edgesList.ToArray();     //O(V)
+            Helper_func.coutingSort(edges);    //O(V)
 
             return edges;
         }
 
         // Merge components based on sorted edges and region predicate
-        private DisjointSet mergeComponents(DisjointSet comp, Edge[] edges)
+        private DisjointSet mergeComponents(DisjointSet comp, Edge[] edges)    //O(V)
         {
             double MInt = 0;
 
-            foreach (var edge in edges)
+            foreach (var edge in edges)     //O(V)
             {
-                int root1 = comp.Find(edge.V1);
+                int root1 = comp.Find(edge.V1); //O(1)?????????????????
                 int root2 = comp.Find(edge.V2);
 
                 if (root1 == root2) continue;  // Already in same component
@@ -149,18 +149,18 @@ namespace ImageTemplate
                 // Merge if edge weight is below adaptive threshold
                 if (edge.weight < MInt)
                 {
-                    comp.Union(root1, root2, edge.weight);
+                    comp.Union(root1, root2, edge.weight);  //O(1)
                 }
             }
             return comp;
         }
 
         // Combine results from three color channels through intersection
-        private DisjointSet buildRegions(DisjointSet RedComp, DisjointSet GreenComp, DisjointSet BlueComp, Edge[] edges)
+        private DisjointSet buildRegions(DisjointSet RedComp, DisjointSet GreenComp, DisjointSet BlueComp, Edge[] edges)    //O(V)
         {
             DisjointSet regions = new DisjointSet(v);
 
-            foreach (var edge in edges)
+            foreach (var edge in edges)     //O(V)
             {
                 int root1 = regions.Find(edge.V1);
                 int root2 = regions.Find(edge.V2);
@@ -175,7 +175,7 @@ namespace ImageTemplate
                 // Merge if edge weight is below adaptive threshold
                 if (key1.Item1 == key2.Item1 && key1.Item2 == key2.Item2 && key1.Item3 == key2.Item3)
                 {
-                    regions.Union(root1, root2);
+                    regions.Union(root1, root2);    //O(1)
                 }
             }
 
@@ -184,13 +184,13 @@ namespace ImageTemplate
         }
 
         // Generate color-coded visualization of regions
-        private RGBPixel[,] visualizeRegions(DisjointSet regions)
+        private RGBPixel[,] visualizeRegions(DisjointSet regions)   //O(V)
         {
-            RGBPixel[,] output = new RGBPixel[height, width];
+            RGBPixel[,] output = new RGBPixel[height, width];   //O(V)
             Dictionary<int, RGBPixel> regionColors = new Dictionary<int, RGBPixel>();
             Random rand = new Random();
 
-            for (int i = 0; i < v; i++)
+            for (int i = 0; i < v; i++) //O(V)
             {
                 int root = regions.Find(i);
                 if (!regionColors.ContainsKey(root))
