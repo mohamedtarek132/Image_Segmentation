@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms.VisualStyles;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.Rebar;
 
 namespace ImageTemplate
 {
@@ -12,6 +13,7 @@ namespace ImageTemplate
         double k;  // Threshold function parameter controlling region merging
         int v;     // Total number of pixels (height * width)
         RGBPixel[,] ImageMatrix;
+        DisjointSet finalRegions;
         public seg(int h, int w, int k, RGBPixel[,] imageMatrix)
         {
             this.k = k;
@@ -39,7 +41,7 @@ namespace ImageTemplate
             );
 
             // Combine results from all three channels using intersection
-            DisjointSet finalRegions = buildRegions(RedComponents, GreenComponents, BlueComponents, Edges);
+            finalRegions = buildRegions(RedComponents, GreenComponents, BlueComponents, Edges);
 
             // Generate color-coded visualization of the regions
             RGBPixel[,] segmentedImage = visualizeRegions(finalRegions);
@@ -200,6 +202,55 @@ namespace ImageTemplate
             }
 
             return output;
+        }
+
+        public RGBPixel[,] MergeRegions(List<Point> points)
+        {
+            RGBPixel[,] output = new RGBPixel[height, width];
+            int index1, index2;
+            int root;
+            int xCoordinate, yCoordinate;
+            DisjointSet regions = finalRegions;
+
+            for (int i = 0; i < points.Count - 1; i++) 
+            {
+                index1 = points[i].y * width + points[i].x;
+                index2 = points[i + 1].y * width + points[i + 1].x;
+
+                regions.Union(index1,index2);
+            }
+
+            int index = index1 = points[0].y * width + points[0].x;
+            int regionRoot = regions.Find(index);
+
+            for (int i = 0; i < v; i++)
+            {
+                root = regions.Find(i);
+                xCoordinate = i / width;
+                yCoordinate = i % width;
+
+                if (root == regionRoot)
+                {
+                    output[xCoordinate, yCoordinate] = new RGBPixel()
+                    {
+                        red = ImageMatrix[xCoordinate, yCoordinate].red,
+                        green = ImageMatrix[xCoordinate, yCoordinate].green,
+                        blue = ImageMatrix[xCoordinate, yCoordinate].blue
+                    };
+                }
+                else
+                {
+                    output[xCoordinate, yCoordinate] = new RGBPixel()
+                    {
+                        red = 255,
+                        green = 255,
+                        blue = 255,
+                    };
+                }
+            }
+
+            return output;
+            
         }
     }
 }

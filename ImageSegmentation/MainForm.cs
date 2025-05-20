@@ -25,9 +25,14 @@ namespace ImageTemplate
         int regionCount;
         int[] pixelPerRegionCount;
         string OpenedFilePath;
+        seg s;
+
+        List<Point> points;
 
         private void btnOpen_Click(object sender, EventArgs e)
         {
+            points = new List<Point>();
+
             OpenFileDialog openFileDialog1 = new OpenFileDialog();
             if (openFileDialog1.ShowDialog() == DialogResult.OK)
             {
@@ -49,7 +54,7 @@ namespace ImageTemplate
 
             Stopwatch timer = Stopwatch.StartNew();
 
-            seg s = new seg(ImageMatrix.GetLength(0), ImageMatrix.GetLength(1),k, ImageMatrix);
+            s = new seg(ImageMatrix.GetLength(0), ImageMatrix.GetLength(1),k, ImageMatrix);
             
             await Task.Run(() => (ImageMatrix, regionCount, pixelPerRegionCount) = s.segmentImage());
             
@@ -77,6 +82,30 @@ namespace ImageTemplate
         private void label7_Click(object sender, EventArgs e)
         {
 
+        }
+
+        private void pictureBox2_MouseClick(object sender, MouseEventArgs e)
+        {
+            if (pictureBox2.Image == null)
+                return;
+
+            Point point = new Point(e.X, e.Y);
+            points.Add(point);
+            Console.WriteLine(points.Count);
+            MessageBox.Show($"x= {e.X}, y= {e.Y}");
+        }
+
+        private void label5_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            RGBPixel[,] mergedImage = s.MergeRegions(points);
+            points = new List<Point>();
+            MergedRegionForm form = new MergedRegionForm(mergedImage);
+            form.ShowDialog();
         }
     }
 }
