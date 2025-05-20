@@ -15,7 +15,7 @@ namespace ImageTemplate
     /// </summary>
     public struct RGBPixel
     {
-        public byte red, green, blue;
+        public byte red , green, blue;
     }
     public struct RGBPixelD
     {

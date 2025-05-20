@@ -9,6 +9,7 @@ using System.Security.Permissions;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace ImageTemplate
 {
@@ -27,11 +28,11 @@ namespace ImageTemplate
         string OpenedFilePath;
         seg s;
 
-        List<Point> points;
+        List<(int,int)> points;
 
         private void btnOpen_Click(object sender, EventArgs e)
         {
-            points = new List<Point>();
+            points = new List<(int, int)>();
 
             OpenFileDialog openFileDialog1 = new OpenFileDialog();
             if (openFileDialog1.ShowDialog() == DialogResult.OK)
@@ -61,12 +62,11 @@ namespace ImageTemplate
             timer.Stop();
             long time = timer.ElapsedMilliseconds;
             
-            Console.WriteLine("time : " + time);
-            Console.WriteLine("number of finel regions : " + regionCount);
-
+            textBox2.Text = (time/1000).ToString();
             ImageOperations.DisplayImage(ImageMatrix, pictureBox2);
 
             Helper_func.writeFile(OpenedFilePath, regionCount, pixelPerRegionCount);
+            Helper_func.saveImage(pictureBox2, OpenedFilePath);
         }
 
         private void MainForm_Load(object sender, EventArgs e)
@@ -88,10 +88,8 @@ namespace ImageTemplate
         {
             if (pictureBox2.Image == null)
                 return;
-
-            Point point = new Point(e.X, e.Y);
-            points.Add(point);
-            Console.WriteLine(points.Count);
+            
+            points.Add((e.Y,e.X));
             MessageBox.Show($"x= {e.X}, y= {e.Y}");
         }
 
@@ -103,9 +101,8 @@ namespace ImageTemplate
         private void button1_Click(object sender, EventArgs e)
         {
             RGBPixel[,] mergedImage = s.MergeRegions(points);
-            points = new List<Point>();
-            MergedRegionForm form = new MergedRegionForm(mergedImage);
-            form.ShowDialog();
+            points = new List<(int, int)>();
+            ImageOperations.DisplayImage(mergedImage, pictureBox3);
         }
     }
 }

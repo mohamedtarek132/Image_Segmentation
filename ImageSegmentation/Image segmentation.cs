@@ -12,8 +12,8 @@ namespace ImageTemplate
         int height, width;
         double k;  // Threshold function parameter controlling region merging
         int v;     // Total number of pixels (height * width)
-        RGBPixel[,] ImageMatrix;
-        DisjointSet finalRegions;
+        RGBPixel[,] ImageMatrix;    // Original image data
+        DisjointSet finalRegions;   // Final segmentation component structure
         public seg(int h, int w, int k, RGBPixel[,] imageMatrix)
         {
             this.k = k;
@@ -34,6 +34,7 @@ namespace ImageTemplate
 
             Edge[] Edges = null;
 
+            // Process color channels concurrently (Red returns edge list)
             Parallel.Invoke(
                 () => Edges = ProcessColorChannel(Color.Red, ref RedComponents),
                 () => ProcessColorChannel(Color.Green, ref GreenComponents),
@@ -46,20 +47,15 @@ namespace ImageTemplate
             // Generate color-coded visualization of the regions
             RGBPixel[,] segmentedImage = visualizeRegions(finalRegions);
 
-            // Diagnostic output for region counts
-            //HashSet<int> red = new HashSet<int>();
-            //HashSet<int> green = new HashSet<int>();
-            //HashSet<int> blue = new HashSet<int>();
+            // Calculate region count and size distribution
             HashSet<int> finalRegionSet = new HashSet<int>();
             Dictionary<int, int> pixelPerRegionCounter = new Dictionary<int, int>();
 
             for (int i = 0; i < v; i++)
             {
-                //red.Add(RedComponents.Find(i));
-                //green.Add(GreenComponents.Find(i));
-                //blue.Add(BlueComponents.Find(i));
                 int parent = finalRegions.Find(i);
                 finalRegionSet.Add(parent);
+
                 if (pixelPerRegionCounter.ContainsKey(parent))
                 {
                     pixelPerRegionCounter[parent] += 1;
@@ -70,10 +66,7 @@ namespace ImageTemplate
                 }
             }
 
-            //Console.WriteLine(red.Count);
-            //Console.WriteLine(green.Count);
-            //Console.WriteLine(blue.Count);
-            //Console.WriteLine(finalRegionSet.Count);
+            // Prepare sorted region sizes
             int[] pixelPerRegionCount = pixelPerRegionCounter.Values.ToArray();
             Array.Sort(pixelPerRegionCount);
             Array.Reverse(pixelPerRegionCount);
@@ -81,35 +74,36 @@ namespace ImageTemplate
             return (segmentedImage, finalRegionSet.Count, pixelPerRegionCount);
         }
 
+        // Processes a single color channel: builds graph, merges components
         private Edge[] ProcessColorChannel(Color channel, ref DisjointSet components)
         {
             byte[,] channelGraph = GraphConstruction.build_graph(channel, ImageMatrix);
             Edge[] edges = buildEdgeArray(channelGraph);
             components = mergeComponents(components, edges);
-            if (channel == Color.Red)
-            {
-                return edges;
-            }
-            return null;
+
+            return channel == Color.Red ? edges : null;
         }
 
-        // Construct sorted edge list for a specific color channel
+        // Constructs sorted edge list from adjacency graph
         private Edge[] buildEdgeArray(byte[,] graph)
         {
             
             List<Edge> edgesList = new List<Edge>();
 
+            // Define neighbor directions (right, down-left, down, down-right)
+            (int, int, byte)[] directions = {
+                                     (0, 1, 0),
+            (1, -1, 1),  (1, 0, 2),  (1, 1, 3)
+            };
+
             // Iterate through all pixels
             for (int i = 0; i < v; i++)    //O(V)
             {
-                (int, int, byte)[] directions = {
-                                         (0, 1, 0),
-                (1, -1, 1),  (1, 0, 2),  (1, 1, 3)
-                };
+                
                 int x = i / width;
                 int y = i % width;
 
-                foreach (var dir in directions)    //O(1)
+                foreach (var dir in directions)  // Check 4 possible neighbors    //O(1)
                 {
                     int nx = x + dir.Item1;
                     int ny = y + dir.Item2;
@@ -126,19 +120,20 @@ namespace ImageTemplate
 
             // Sort edges by ascending weight for Kruskal-like merging
             Edge[] edges = edgesList.ToArray();     //O(V)
-            Helper_func.coutingSort(edges);    //O(V)
+            Helper_func.coutingSort(edges); // Stable O(n) sort for byte weights    //O(V)
 
             return edges;
         }
 
-        // Merge components based on sorted edges and region predicate
+        // Merges components using adaptive threshold predicate
+        // Based on Kruskal's algorithm with union-find
         private DisjointSet mergeComponents(DisjointSet comp, Edge[] edges)    //O(V)
         {
             double MInt = 0;
 
             foreach (var edge in edges)     //O(V)
             {
-                int root1 = comp.Find(edge.V1); //O(1)?????????????????
+                int root1 = comp.Find(edge.V1); //O(1)
                 int root2 = comp.Find(edge.V2);
 
                 if (root1 == root2) continue;  // Already in same component
@@ -157,7 +152,8 @@ namespace ImageTemplate
             return comp;
         }
 
-        // Combine results from three color channels through intersection
+        // Combines color channel segmentations through component intersection
+        // Two pixels merge only if they belong to same components in ALL channels
         private DisjointSet buildRegions(DisjointSet RedComp, DisjointSet GreenComp, DisjointSet BlueComp, Edge[] edges)    //O(V)
         {
             DisjointSet regions = new DisjointSet(v);
@@ -171,18 +167,18 @@ namespace ImageTemplate
 
                 int v1 = edge.V1;
                 int v2 = edge.V2;
+
+                // Check component parent across all color channels
                 var key1 = (RedComp.Find(v1), GreenComp.Find(v1), BlueComp.Find(v1));
                 var key2 = (RedComp.Find(v2), GreenComp.Find(v2), BlueComp.Find(v2));
 
                 // Merge if edge weight is below adaptive threshold
-                if (key1.Item1 == key2.Item1 && key1.Item2 == key2.Item2 && key1.Item3 == key2.Item3)
-                {
+                if (key1 == key2)
                     regions.Union(root1, root2);    //O(1)
-                }
+                
             }
 
-
-            return regions;
+             return regions;
         }
 
         // Generate color-coded visualization of regions
@@ -194,8 +190,8 @@ namespace ImageTemplate
 
             for (int i = 0; i < v; i++) //O(V)
             {
-                int root = regions.Find(i);
-                if (!regionColors.ContainsKey(root))
+                int root = regions.Find(i); //O(1)
+                if (!regionColors.ContainsKey(root)) //O(1)
                 {
                     // Assign random color to new region
                     regionColors[root] = new RGBPixel()
@@ -215,48 +211,42 @@ namespace ImageTemplate
             return output;
         }
 
-        public RGBPixel[,] MergeRegions(List<Point> points)
+        // Creates focused visualization preserving selected regions:
+        // - Selected regions keep original colors
+        // - Non-selected regions become white
+        public RGBPixel[,] MergeRegions(List<(int,int)> points)
         {
             RGBPixel[,] output = new RGBPixel[height, width];
-            int index1, index2;
-            int root;
-            int xCoordinate, yCoordinate;
-            DisjointSet regions = finalRegions;
+            HashSet<int> regionsRoots = new HashSet<int>();
 
-            for (int i = 0; i < points.Count - 1; i++) 
+
+            // Identify region roots for selected points
+            foreach (var p in points)
             {
-                index1 = points[i].y * width + points[i].x;
-                index2 = points[i + 1].y * width + points[i + 1].x;
-
-                regions.Union(index1,index2);
+                Console.WriteLine(p.ToString(), p.Item1 * width + p.Item2);
+                regionsRoots.Add(finalRegions.Find(p.Item1 * width + p.Item2));
             }
 
-            int index = index1 = points[0].y * width + points[0].x;
-            int regionRoot = regions.Find(index);
-
+            // Apply color preservation/whitening
             for (int i = 0; i < v; i++)
             {
-                root = regions.Find(i);
-                xCoordinate = i / width;
-                yCoordinate = i % width;
+                int x = i / width;
+                int y = i % width;
 
-                if (root == regionRoot)
+                if (regionsRoots.Contains(finalRegions.Find(i)))
                 {
-                    output[xCoordinate, yCoordinate] = new RGBPixel()
+                    // Preserve original color
+                    output[x, y] = new RGBPixel()
                     {
-                        red = ImageMatrix[xCoordinate, yCoordinate].red,
-                        green = ImageMatrix[xCoordinate, yCoordinate].green,
-                        blue = ImageMatrix[xCoordinate, yCoordinate].blue
+                        red = ImageMatrix[x, y].red,
+                        green = ImageMatrix[x, y].green,
+                        blue = ImageMatrix[x, y].blue
                     };
+                           
                 }
                 else
                 {
-                    output[xCoordinate, yCoordinate] = new RGBPixel()
-                    {
-                        red = 255,
-                        green = 255,
-                        blue = 255,
-                    };
+                    output[x, y] = new RGBPixel(){ red = 255, green = 255, blue = 255 };    // Whitening
                 }
             }
 

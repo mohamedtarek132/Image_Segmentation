@@ -7,12 +7,23 @@ namespace ImageTemplate
     {
         public static byte[,] build_graph(Color color, RGBPixel[,] ImageMatrix)
         {
-            int width = ImageMatrix.GetLength(1);
+            // Get image dimensions from the 2D pixel matrix
             int height = ImageMatrix.GetLength(0);
+            int width = ImageMatrix.GetLength(1);
+
+            // Total vertices/nodes in graph (each pixel is a node)
             int V = width * height;
 
+            // Initialize graph: 
+            // 2D array where each row represents a pixel, and 4 columns represent 4-directional edges
+            // Directions: Right, Down-Left, Down, Down-Right (see directions array below)
             byte[,] graph = new byte[V, 4];
 
+            // Define neighbor directions as (delta_row, delta_col, position_index) tuples:
+            // [0] Right       (0, 1)
+            // [1] Down-Left  (1, -1)
+            // [2] Down       (1, 0)
+            // [3] Down-Right (1, 1)
             (int, int, byte)[] directions = {
                                          (0, 1, 0),
                 (1, -1, 1),  (1, 0, 2),  (1, 1, 3)
@@ -51,8 +62,10 @@ namespace ImageTemplate
                                     break;
                             }
 
+                            // Convert 2D pixel position to 1D graph node index
                             int currentIndex = row * width + col;
 
+                            // Store weight in graph: current node -> direction position
                             graph[currentIndex, pos] = weight;
 
                         }
