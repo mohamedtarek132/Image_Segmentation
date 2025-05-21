@@ -24,9 +24,21 @@ namespace ImageTemplate
         }
 
         // Main segmentation entry point
-        public (RGBPixel[,], int, int[]) segmentImage()
+        public (RGBPixel[,], int, int[]) ProccessImage()
         {
 
+            finalRegions = SegmentImage();
+
+            // Generate color-coded visualization of the regions
+            RGBPixel[,] segmentedImage = visualizeRegions(finalRegions);
+
+            (int RegionsCount, int[] pixelPerRegionCount) = computeOutput(finalRegions);
+            
+            return (segmentedImage,RegionsCount,pixelPerRegionCount);
+        }
+
+        private DisjointSet SegmentImage()
+        {
             // Initialize disjoint sets for each color channel
             DisjointSet RedComponents = new DisjointSet(v);
             DisjointSet GreenComponents = new DisjointSet(v);
@@ -44,35 +56,9 @@ namespace ImageTemplate
             // Combine results from all three channels using intersection
             finalRegions = buildRegions(RedComponents, GreenComponents, BlueComponents, Edges);
 
-            // Generate color-coded visualization of the regions
-            RGBPixel[,] segmentedImage = visualizeRegions(finalRegions);
-
-            // Calculate region count and size distribution
-            HashSet<int> finalRegionSet = new HashSet<int>();
-            Dictionary<int, int> pixelPerRegionCounter = new Dictionary<int, int>();
-
-            for (int i = 0; i < v; i++)
-            {
-                int parent = finalRegions.Find(i);
-                finalRegionSet.Add(parent);
-
-                if (pixelPerRegionCounter.ContainsKey(parent))
-                {
-                    pixelPerRegionCounter[parent] += 1;
-                }
-                else
-                {
-                    pixelPerRegionCounter.Add(parent, 1);
-                }
-            }
-
-            // Prepare sorted region sizes
-            int[] pixelPerRegionCount = pixelPerRegionCounter.Values.ToArray();
-            Array.Sort(pixelPerRegionCount);
-            Array.Reverse(pixelPerRegionCount);
-
-            return (segmentedImage, finalRegionSet.Count, pixelPerRegionCount);
+            return finalRegions;
         }
+
 
         // Processes a single color channel: builds graph, merges components
         private Edge[] ProcessColorChannel(Color channel, ref DisjointSet components)
@@ -87,7 +73,7 @@ namespace ImageTemplate
         // Constructs sorted edge list from adjacency graph
         private Edge[] buildEdgeArray(byte[,] graph)
         {
-            
+
             List<Edge> edgesList = new List<Edge>();
 
             // Define neighbor directions (right, down-left, down, down-right)
@@ -99,7 +85,7 @@ namespace ImageTemplate
             // Iterate through all pixels
             for (int i = 0; i < v; i++)    //O(V)
             {
-                
+
                 int x = i / width;
                 int y = i % width;
 
@@ -175,10 +161,10 @@ namespace ImageTemplate
                 // Merge if edge weight is below adaptive threshold
                 if (key1 == key2)
                     regions.Union(root1, root2);    //O(1)
-                
+
             }
 
-             return regions;
+            return regions;
         }
 
         // Generate color-coded visualization of regions
@@ -214,7 +200,7 @@ namespace ImageTemplate
         // Creates focused visualization preserving selected regions:
         // - Selected regions keep original colors
         // - Non-selected regions become white
-        public RGBPixel[,] MergeRegions(List<(int,int)> points)
+        public RGBPixel[,] MergeRegions(List<(int, int)> points)
         {
             RGBPixel[,] output = new RGBPixel[height, width];
             HashSet<int> regionsRoots = new HashSet<int>();
@@ -242,16 +228,45 @@ namespace ImageTemplate
                         green = ImageMatrix[x, y].green,
                         blue = ImageMatrix[x, y].blue
                     };
-                           
+
                 }
                 else
                 {
-                    output[x, y] = new RGBPixel(){ red = 255, green = 255, blue = 255 };    // Whitening
+                    output[x, y] = new RGBPixel() { red = 255, green = 255, blue = 255 };    // Whitening
                 }
             }
 
             return output;
-            
+
+        }
+
+        // Calculate region count and size distribution
+        public (int,int[]) computeOutput(DisjointSet finalRegions)
+        {
+            HashSet<int> finalRegionSet = new HashSet<int>();
+            Dictionary<int, int> pixelPerRegionCounter = new Dictionary<int, int>();
+
+            for (int i = 0; i < v ; i++)
+            {
+                int parent = finalRegions.Find(i);
+                finalRegionSet.Add(parent);
+
+                if (pixelPerRegionCounter.ContainsKey(parent))
+                {
+                    pixelPerRegionCounter[parent] += 1;
+                }
+                else
+                {
+                    pixelPerRegionCounter.Add(parent, 1);
+                }
+            }
+
+            // Prepare sorted region sizes
+            int[] pixelPerRegionCount = pixelPerRegionCounter.Values.ToArray();
+            Array.Sort(pixelPerRegionCount);
+            Array.Reverse(pixelPerRegionCount);
+
+            return (finalRegionSet.Count, pixelPerRegionCount);
         }
     }
 }

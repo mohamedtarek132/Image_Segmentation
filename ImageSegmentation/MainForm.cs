@@ -57,7 +57,7 @@ namespace ImageTemplate
 
             s = new seg(ImageMatrix.GetLength(0), ImageMatrix.GetLength(1),k, ImageMatrix);
             
-            await Task.Run(() => (ImageMatrix, regionCount, pixelPerRegionCount) = s.segmentImage());
+            await Task.Run(() => (ImageMatrix, regionCount, pixelPerRegionCount) = s.ProccessImage());
             
             timer.Stop();
             long time = timer.ElapsedMilliseconds;

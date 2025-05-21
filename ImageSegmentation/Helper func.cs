@@ -50,6 +50,8 @@ namespace ImageTemplate
             Array.Copy(sorted, edges, edges.Length);//O(V)
         }
 
+        
+
         static public void writeFile(string fullPath, int regionCount, int[] pixelPerRegionCount)
         {
             string filePath = Path.GetDirectoryName(fullPath);

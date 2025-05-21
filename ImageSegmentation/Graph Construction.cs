@@ -17,7 +17,7 @@ namespace ImageTemplate
             // Initialize graph: 
             // 2D array where each row represents a pixel, and 4 columns represent 4-directional edges
             // Directions: Right, Down-Left, Down, Down-Right (see directions array below)
-            byte[,] graph = new byte[V, 4];
+            byte[,] graph = new byte[V, 4]; // O(V)
 
             // Define neighbor directions as (delta_row, delta_col, position_index) tuples:
             // [0] Right       (0, 1)
@@ -29,12 +29,11 @@ namespace ImageTemplate
                 (1, -1, 1),  (1, 0, 2),  (1, 1, 3)
             };
 
-
+            //O(4V)
             for (int row = 0; row < height; row++)
             {
                 for (int col = 0; col < width; col++)
                 {
-
                     foreach (var dir in directions)
                     {
                         var (dr, dc,pos) = dir;
